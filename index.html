@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="si" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hawagala Ultimate Expedition 2026 | Master Dashboard</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Sinhala:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans Sinhala', 'sans-serif'],
+                    },
+                    colors: {
+                        glassBg: 'rgba(15, 23, 42, 0.75)',
+                        glassBorder: 'rgba(255, 255, 255, 0.12)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #030712;
+            color: #f3f4f6;
+            overflow-x: hidden;
+        }
+
+        #canvas-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -1;
+            background: radial-gradient(circle at center, #0f172a 0%, #030712 100%);
+        }
+
+        /* Glassmorphism Styles */
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+        
+        .glass-panel:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Theme Color Borders for Itinerary */
+        .border-dawn { border-left: 5px solid #38bdf8; }
+        .border-day { border-left: 5px solid #10b981; }
+        .border-sunset { border-left: 5px solid #f97316; }
+        .border-night { border-left: 5px solid #a855f7; }
+        
+        /* Algorithm Branching Path Effect */
+        .algo-path::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            width: 2px;
+            height: 20px;
+            background: repeating-linear-gradient(to bottom, #d8b4fe, #d8b4fe 4px, transparent 4px, transparent 8px);
+        }
+
+        /* Video Embed Aspect Ratio Wrapper */
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+        }
+
+        /* Lightbox Styles for Image Zoom */
+        #lightbox {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        #lightbox.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #lightbox-img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 12px;
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.2);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        #lightbox.active #lightbox-img {
+            transform: scale(1);
+        }
+        #lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: #fff;
+            font-size: 40px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        #lightbox-close:hover { color: #f87171; }
+        .zoomable { cursor: zoom-in; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #030712; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    </style>
+</head>
+<body class="antialiased selection:bg-cyan-500 selection:text-white">
+
+    <canvas id="canvas-bg"></canvas>
+
+    <!-- Image Lightbox Modal -->
+    <div id="lightbox" onclick="closeLightbox()">
+        <span id="lightbox-close">&times;</span>
+        <img id="lightbox-img" src="" alt="Zoomed Image">
+    </div>
+
+    <!-- Floating Music Playlist Drawer Button -->
+    <button onclick="toggleMusicDrawer()" class="fixed right-0 top-1/2 -translate-y-1/2 z-50 bg-gradient-to-l from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-3 px-3 rounded-l-2xl shadow-2xl flex items-center gap-2 border-y border-l border-white/20 transition-all duration-300 transform hover:scale-105">
+        <i class="fa-solid fa-music text-xl animate-bounce"></i>
+        <span class="text-xs [writing-mode:vertical-lr] tracking-widest uppercase py-2">Trip Playlist</span>
+    </button>
+
+    <!-- Side Playlist Drawer Modal -->
+    <div id="musicDrawer" class="fixed inset-y-0 right-0 w-80 md:w-96 glass-panel z-50 transform translate-x-full transition-transform duration-300 p-6 overflow-y-auto flex flex-col justify-between border-l border-white/10">
+        <div>
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-bold text-purple-300 flex items-center gap-2">
+                    <i class="fa-solid fa-headphones"></i> Van & Camping Vibes
+                </h3>
+                <button onclick="toggleMusicDrawer()" class="text-gray-400 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <p class="text-xs text-gray-400 mb-4">වෑන් එකේ යනකොට සහ කන්ද උඩ ගිනිමැලේ ගාවදී අහන්න සෙට් කරපු Song List එක.</p>
+            
+            <div class="space-y-3">
+                <div class="glass-card p-3 rounded-xl flex items-center justify-between hover:bg-white/5 transition">
+                    <div>
+                        <p class="text-sm font-bold text-cyan-300">🚍 Van Roadtrip Hits</p>
+                        <p class="text-xs text-gray-400">Acoustic & Sinhala Nonstop</p>
+                    </div>
+                    <a href="https://open.spotify.com" target="_blank" class="text-green-400 hover:text-green-300 text-lg"><i class="fa-brands fa-spotify"></i></a>
+                </div>
+                <div class="glass-card p-3 rounded-xl flex items-center justify-between hover:bg-white/5 transition">
+                    <div>
+                        <p class="text-sm font-bold text-orange-300">🔥 Campfire Chill Tracks</p>
+                        <p class="text-xs text-gray-400">Lo-Fi & Ambient Mountain Beats</p>
+                    </div>
+                    <a href="https://open.spotify.com" target="_blank" class="text-green-400 hover:text-green-300 text-lg"><i class="fa-brands fa-spotify"></i></a>
+                </div>
+                <div class="glass-card p-3 rounded-xl flex items-center justify-between hover:bg-white/5 transition">
+                    <div>
+                        <p class="text-sm font-bold text-purple-300">🎬 Hokum Movie OST</p>
+                        <p class="text-xs text-gray-400">Night Cinema Soundtrack</p>
+                    </div>
+                    <a href="https://youtube.com" target="_blank" class="text-red-400 hover:text-red-300 text-lg"><i class="fa-brands fa-youtube"></i></a>
+                </div>
+            </div>
+
+            <!-- Background Audio Player Simulation -->
+            <div class="mt-6 p-4 rounded-xl bg-purple-900/30 border border-purple-500/30 text-center">
+                <p class="text-xs font-semibold text-purple-200 mb-2">🎵 Quick Background Vibe</p>
+                <audio controls class="w-full h-8 rounded">
+                    <source src="https://jumpshare.com/s/o0OtD8Prr37fT7UdcgKs" type="audio/mpeg">
+                    Your browser does not support audio.
+                </audio>
+            </div>
+        </div>
+        <button onclick="toggleMusicDrawer()" class="mt-6 w-full py-2 bg-gray-800 hover:bg-gray-700 text-sm font-bold rounded-lg transition">Close Drawer</button>
+    </div>
+
+    <!-- Top Navigation Bar -->
+    <nav class="fixed top-0 w-full z-40 glass-panel border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-mountain-sun text-cyan-400 text-2xl"></i>
+                    <span class="font-extrabold text-lg tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-teal-300 to-purple-400">HAWAGALA '26</span>
+                </div>
+                <div class="hidden md:flex space-x-6 text-sm font-medium">
+                    <a href="#return-list" class="hover:text-red-400 transition font-bold text-red-300">Return List</a>
+                    <a href="#budget" class="hover:text-cyan-400 transition">Budget</a>
+                    <a href="#gear" class="hover:text-cyan-400 transition">Gear</a>
+                    <a href="#itinerary" class="hover:text-cyan-400 transition">Timeline</a>
+                    <a href="#map" class="hover:text-cyan-400 transition">Map</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="max-w-5xl mx-auto px-4 sm:px-6 pt-24 pb-20">
+
+        <!-- ================= HERO SECTION ================= -->
+        <header class="text-center py-10 relative">
+            <div class="inline-block px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-widest mb-4 hover:bg-cyan-500/20 transition cursor-default">
+                Official Expedition Itinerary
+            </div>
+            <h1 class="text-4xl md:text-6xl font-black mb-4 leading-tight tracking-tight">
+                HAWAGALA <span class="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-emerald-400">EXPEDITION</span>
+            </h1>
+            <p class="text-gray-300 text-sm md:text-base mb-8 max-w-2xl mx-auto leading-relaxed">
+                කොල්ලෝ 12කගේ අමතක නොවන Hawagala Camping Trip එක! 17-18 ඔක්තෝබර්. වෙලාව, බඩු ලැයිස්තුව, නීති, සහ Surprise Endings ඔක්කොම මෙතන තියෙනවා.
+            </p>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
+                <div class="glass-card p-3 rounded-xl hover:scale-105 transition duration-300 cursor-default">
+                    <p class="text-xs text-gray-400">Date</p>
+                    <p class="text-sm font-bold text-cyan-300"><i class="fa-solid fa-calendar mr-1"></i> Oct 17 - 18</p>
+                </div>
+                <div class="glass-card p-3 rounded-xl hover:scale-105 transition duration-300 cursor-default">
+                    <p class="text-xs text-gray-400">Crew</p>
+                    <p class="text-sm font-bold text-green-300"><i class="fa-solid fa-users mr-1"></i> 11 Members</p>
+                </div>
+                <div class="glass-card p-3 rounded-xl hover:scale-105 transition duration-300 cursor-default">
+                    <p class="text-xs text-gray-400">Target Budget</p>
+                    <p class="text-sm font-bold text-yellow-300"><i class="fa-solid fa-wallet mr-1"></i> Rs. 60,000</p>
+                </div>
+                <div class="glass-card p-3 rounded-xl hover:scale-105 transition duration-300 cursor-default">
+                    <p class="text-xs text-gray-400">Location</p>
+                    <p class="text-sm font-bold text-purple-300"><i class="fa-solid fa-location-dot mr-1"></i> Hawagala</p>
+                </div>
+            </div>
+        </header>
+
+      <!-- ================= UPGRADED: RETURN LIST (Top Priority) ================= -->
+<section id="return-list" class="mb-14">
+    <div class="glass-panel p-6 rounded-2xl border-2 border-red-500/50 bg-red-950/20 relative overflow-hidden shadow-[0_0_30px_rgba(239,68,68,0.15)]">
+        <div class="absolute -right-4 -top-4 w-24 h-24 bg-red-500/20 rounded-full blur-xl"></div>
+        
+        <!-- Header Section -->
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+            <div class="bg-red-500/20 p-3 rounded-xl border border-red-500/30 w-fit">
+                <i class="fa-solid fa-triangle-exclamation text-red-500 text-2xl animate-pulse"></i>
+            </div>
+            <div>
+                <h2 class="text-2xl font-bold text-red-200">හැමෝම අනිවාර්යයෙන්ම ගේන්න ඕන දේවල්.</h2>
+                <p class="text-sm text-red-400/80 mt-1">ගෙදරින් ගේන්න ඕනෙ දේවල්.</p>
+                <div class="mt-2 bg-red-500/10 border border-red-500/30 px-3 py-2 rounded-lg inline-block">
+                    <p class="text-sm font-bold text-red-300">
+                        <i class="fa-solid fa-bolt text-yellow-400 mr-1"></i> මතක ඇතුව Phone නුයි ගේන හැම electric බඩුවක්ම 100% Charge කරන් වරෙල්ලා.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Grid Layout: Balanced for Desktop and Mobile -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mt-5">
+            
+            <!-- Card 1: Personal Items -->
+            <div class="bg-gray-900/60 p-5 rounded-xl border border-red-500/20 hover:border-red-500/50 transition flex flex-col">
+                <h3 class="font-bold text-white flex items-center gap-2 mb-3 pb-2 border-b border-red-500/20">
+                    <i class="fa-solid fa-backpack text-red-400"></i> පෞද්ගලික දේවල්
+                </h3>
+                <ul class="text-gray-300 text-xs space-y-3">
+                    <li class="flex items-start gap-2"><i class="fa-solid fa-check text-red-500/70 mt-0.5"></i> <span>අමතර ඇදුමක් දෙකක් ගේන්න (ඕන ඇදුමක් සරම් , ජොක්කු ඕන එකක් හැබැයි ගොඩක් ඒව ගේන්න එපා).</span></li>
+                    <li class="flex items-start gap-2"><i class="fa-solid fa-check text-red-500/70 mt-0.5"></i> <span>වතුර 2L බෝතලයක්.</span></li>
+                    <li class="flex items-start gap-2"><i class="fa-solid fa-check text-red-500/70 mt-0.5"></i> <span>කුඩයක් හරි Raincourt එකක් හරි.</span></li>
+                    <li class="flex items-start gap-2"><i class="fa-solid fa-check text-red-500/70 mt-0.5"></i> <span>Pandol, සිද්දාලේප, පැගිරි තෙල් තව උබලට බෙහෙත් බොන්න තියෙන උන් ඒවත් ගෙනෙහන්.</span></li>
+                </ul>
+            </div>
+
+            <!-- Card 2: Food -->
+            <div class="bg-gray-900/60 p-5 rounded-xl border border-red-500/20 hover:border-red-500/50 transition flex flex-col">
+                <h3 class="font-bold text-white flex items-center gap-2 mb-3 pb-2 border-b border-red-500/20">
+                    <i class="fa-solid fa-utensils text-red-400"></i> පලවෙනි දවසට විතරක් උදේට කෑම
+                </h3>
+                <ul class="text-gray-300 text-xs space-y-3">
+                    <li class="flex items-start gap-2"><i class="fa-solid fa-check text-red-500/70 mt-0.5"></i> <span>මොනාහරි ගෙනහන් එක හොද්දයි බතුයි උනත් කමක් නැ පුලුවන් මොනාහරි ගේන්න.</span></li>
+                </ul>
+            </div>
+
+            <!-- Card 3: Group & Extra Items (Spans full width, content in 2 columns) -->
+            <div class="md:col-span-2 bg-gray-900/60 p-5 rounded-xl border border-red-500/20 hover:border-red-500/50 transition mt-2">
+                <h3 class="font-bold text-white flex items-center gap-2 mb-1">
+                    <i class="fa-solid fa-box-open text-red-400"></i> මෙතන තියෙන ඒව තියෙන හැමෝම ගේන්න.
+                </h3>
+                <p class="text-red-400/80 text-xs mb-4 pb-2 border-b border-red-500/20">ඔතනින් බර බලල වැඩිපුර එව Van එකෙ තියල යතැකිනෙ එනිස ඔක්කොමලා ගෙන්න.</p>
+                
+                <ul class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-gray-300 text-xs">
+                    <li class="flex items-start gap-2"><i class="fa-solid fa-check text-red-500/70 mt-0.5"></i> <span>දනිදුවා Projector එක ගේනෝ කිව්වා.</span></li>
+                    <li class="flex items-start gap-2"><i class="fa-solid fa-check text-red-500/70 mt-0.5"></i> <span>JBL හරි පොඩි Bluetooth Speakers තියෙන අය ඒව ගේන්න.</span></li>
+                    <li class="flex items-start gap-2"><i class="fa-solid fa-check text-red-500/70 mt-0.5"></i> <span>Power Bank තියෙන අය ඒවත් ගෙන්න.</span></li>
+                    <li class="flex items-start gap-2"><i class="fa-solid fa-check text-red-500/70 mt-0.5"></i> <span>Torch එකක් , ඔය ලොකු Rechargble FlashLight ඒව මේව තියේනම් ඒවත් ගේන්න.</span></li>
+                    <li class="flex items-start gap-2"><i class="fa-solid fa-check text-red-500/70 mt-0.5"></i> <span>Cap එකක්.</span></li>
+                    <li class="flex items-start gap-2"><i class="fa-solid fa-check text-red-500/70 mt-0.5"></i> <span>මොනාහරි සපත්තු දෙකක් Hiking Boots තියෙනවනම් වඩා හොදයි හැබැයි මන් ගාවත් නැ ඔය පරන sports කරන කාලෙක දාපු දෙකක් හරි ගෙනහම්.</span></li>
+                    <li class="flex items-start gap-2"><i class="fa-solid fa-check text-red-500/70 mt-0.5"></i> <span>සෙරප්පු දෙකක් shopping bag එකක දාන් වරෙල්ලා.</span></li>
+                    <li class="flex items-start gap-2"><i class="fa-solid fa-check text-red-500/70 mt-0.5"></i> <span>ඔය ගිටාර් ඩොල්කි ඒව මේව තියෙනම් ඒවත් ගේන්න.</span></li>
+                </ul>
+            </div>
+            
+        </div>
+    </div>
+</section>
+
+        <!-- ================= BUDGET TRACKER WIDGET ================= -->
+        <section id="budget" class="mb-14">
+            <div class="glass-panel p-6 rounded-2xl border border-yellow-500/20">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-yellow-300 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie"></i> Trip Budget & Finance Meter
+                    </h2>
+                    <span class="text-xs bg-yellow-500/20 text-yellow-300 px-3 py-1 rounded-full font-semibold animate-pulse">Live Status</span>
+                </div>
+                <div class="mb-4">
+                    <div class="flex justify-between text-sm mb-1">
+                        <span class="text-gray-300">Allocated / Collected: <strong class="text-white">Rs. 49,000</strong></span>
+                        <span class="text-gray-400">Target: <strong class="text-yellow-400">Rs. 60,000</strong></span>
+                    </div>
+                    <div class="w-full bg-gray-800 rounded-full h-4 overflow-hidden border border-white/10 p-0.5">
+                        <div class="bg-gradient-to-r from-yellow-500 via-emerald-400 to-cyan-400 h-full rounded-full transition-all duration-1000" style="width: 74.7%;"></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center text-xs mt-4">
+                    <div class="p-2 rounded-lg bg-gray-900/60 border border-white/5 hover:bg-gray-800 transition">
+                        <p class="text-gray-400">🚐 Van & Fuel</p>
+                        <p class="font-bold text-white mt-0.5">Rs. 25,000</p>
+                    </div>
+                    <div class="p-2 rounded-lg bg-gray-900/60 border border-white/5 hover:bg-gray-800 transition">
+                        <p class="text-gray-400">⛺ Tent Renting</p>
+                        <p class="font-bold text-white mt-0.5">Rs. 14,000</p>
+                    </div>
+                    <div class="p-2 rounded-lg bg-gray-900/60 border border-white/5 hover:bg-gray-800 transition">
+                        <p class="text-gray-400">🍖 BBQ & Food</p>
+                        <p class="font-bold text-white mt-0.5">Rs. 16,000</p>
+                    </div>
+                    <div class="p-2 rounded-lg bg-gray-900/60 border border-white/5 hover:bg-gray-800 transition">
+                        <p class="text-gray-400">⛽ Other & Additional</p>
+                        <p class="font-bold text-white mt-0.5">Rs. 5,000</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+ <!-- ================= SECTION 1: TRIP HYPE VLOGS ================= -->
+<section class="mb-14">
+    <div class="flex items-center gap-3 mb-2">
+        <i class="fa-brands fa-youtube text-red-500 text-2xl"></i>
+        <h2 class="text-2xl font-bold text-white">අනිවාරෙන් හැමෝම මේව බලල වරෙන්.</h2>
+    </div>
+    <p class="text-xs text-gray-400 mb-6">පහලත් මන් ඒ ඒ අදාල තැන් වල ගිනිමැල ගහන හැටි tent ගහන හැටි එව මේව දාල ඇති එවත් බලහල්ල හැමෝම</p>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Vlog 1 -->
+        <a href="https://www.youtube.com/watch?v=U7_kEMgNRIw" target="_blank" class="group glass-card p-4 rounded-2xl border border-white/10 hover:border-red-500/50 transition bg-gray-900/50 block relative overflow-hidden shadow-lg">
+            <div class="relative w-full aspect-video rounded-xl overflow-hidden mb-3 border border-white/10">
+                <!-- YouTube Thumbnail -->
+                <img src="https://img.youtube.com/vi/U7_kEMgNRIw/hqdefault.jpg" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" alt="Hawagala Vlog 1">
+                <!-- Overlay Play Button -->
+                <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition flex items-center justify-center">
+                    <div class="w-14 h-14 bg-red-600/90 text-white rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition duration-300 border border-white/20">
+                        <i class="fa-solid fa-play text-xl ml-1"></i>
+                    </div>
+                </div>
+                <span class="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] font-mono px-2 py-0.5 rounded border border-white/10">Watch on YouTube</span>
+            </div>
+            <p class="text-xs font-bold text-center text-cyan-300 group-hover:text-cyan-200 transition">Hawagala Full Hiking Experience Vlog</p>
+        </a>
+
+        <!-- Vlog 2 -->
+        <a href="https://www.youtube.com/watch?v=hE6hrIQzzFs" target="_blank" class="group glass-card p-4 rounded-2xl border border-white/10 hover:border-red-500/50 transition bg-gray-900/50 block relative overflow-hidden shadow-lg">
+            <div class="relative w-full aspect-video rounded-xl overflow-hidden mb-3 border border-white/10">
+                <!-- YouTube Thumbnail -->
+                <img src="https://img.youtube.com/vi/hE6hrIQzzFs/hqdefault.jpg" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" alt="Hawagala Vlog 2">
+                <!-- Overlay Play Button -->
+                <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition flex items-center justify-center">
+                    <div class="w-14 h-14 bg-red-600/90 text-white rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition duration-300 border border-white/20">
+                        <i class="fa-solid fa-play text-xl ml-1"></i>
+                    </div>
+                </div>
+                <span class="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] font-mono px-2 py-0.5 rounded border border-white/10">Watch on YouTube</span>
+            </div>
+            <p class="text-xs font-bold text-center text-cyan-300 group-hover:text-cyan-200 transition">Camping & Night View Guide</p>
+        </a>
+
+    </div>
+</section>
+
+
+
+        <!-- ================= SECTION 1: TRIP HYPE VLOGS ================= -->
+        <section class="mb-14">
+            <div class="flex items-center gap-3 mb-4">
+                <i class="fa-brands fa-youtube text-red-500 text-2xl"></i>
+                <h2 class="text-2xl font-bold">Hawagala Expedition: මේකෙ දෙවෙනි එක නොබැලුවත් පලවෙනි එක ඔක්කොමල බලහන්</h2>
+            </div>
+            <p class="text-xs text-gray-400 mb-6">කලින් ගියපු අයගෙ vlogs මේ මෙතනින් බලහන් එකක් දෙකක් පුලුවන් උනොත් පාරවල් හොයාගන්න ඕව බැලුවම ලේසි වෙයි</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass-card p-3 rounded-2xl hover:border-white/20 transition">
+                    <div class="video-wrapper mb-2">
+                        <iframe width="560" height="315" src="https://www.youtube.com/embed/CQtobuSXlE4?si=Sgnl1rX05VsE_0-r" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                    </div>
+                    <p class="text-xs font-bold text-center text-gray-300">Hawagala Full Hiking Experience Vlog</p>
+                </div>
+                <div class="glass-card p-3 rounded-2xl hover:border-white/20 transition">
+                    <div class="video-wrapper mb-2">
+                        <iframe width="560" height="315" src="https://www.youtube.com/embed/rpr0sOTLQiU?si=bwkRndSC02H_WPRB" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                    </div>
+                    <p class="text-xs font-bold text-center text-gray-300">Camping & Night View Guide</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECTION 2: MASTER GEAR & RENTING COLLAGE ================= -->
+        <section id="gear" class="mb-14">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-boxes-packing text-emerald-400 text-2xl"></i>
+                    <h2 class="text-2xl font-bold">Master Gear, Renting & Shopping List</h2>
+                </div>
+                <span class="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full font-semibold">Checklist</span>
+            </div>
+
+            <!-- UPGRADED: Dedicated Travelgears Box -->
+            <div class="glass-panel p-6 rounded-2xl border-2 border-emerald-500/40 relative overflow-hidden mb-8 shadow-lg">
+                <div class="absolute top-0 right-0 bg-emerald-500/20 px-4 py-1.5 rounded-bl-xl border-b border-l border-emerald-500/30 text-emerald-300 text-xs font-bold uppercase tracking-wider">
+                    Official Supplier
+                </div>
+                <h3 class="text-xl font-bold text-white mb-1 flex items-center gap-2">
+                    <i class="fa-solid fa-campground text-emerald-400"></i> Travelgears - රත්නපුර
+                </h3>
+                <p class="text-xs text-gray-400 mb-5 flex items-center gap-3">
+                    <a href="https://maps.app.goo.gl/4iwaywvaWSeJmLv68" target="_blank" class="hover:text-cyan-400 transition"><i class="fa-solid fa-location-dot"></i> රත්නපුර Town</a>
+                    <span class="text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">All Renting Items</span>
+                    <span class="text-gray-500 italic">(පින්තූරය ඔබලා ලොකු කරලා බලන්න)</span>
+                </p>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <!-- Tent Image -->
+                    <div class="bg-gray-900/60 rounded-xl p-2 border border-white/5 hover:border-emerald-500/50 transition">
+                        <div class="overflow-hidden rounded-lg mb-2 group relative cursor-pointer" onclick="openLightbox('https://img.drz.lazcdn.com/static/lk/p/a7f4b8df5901fa447118894c9ce59e5b.jpg_720x720q80.jpg')">
+                            <img src="https://img.drz.lazcdn.com/static/lk/p/a7f4b8df5901fa447118894c9ce59e5b.jpg_720x720q80.jpg" class="w-full h-32 object-cover transition duration-300 group-hover:scale-110 zoomable" alt="Tents">
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center"><i class="fa-solid fa-magnifying-glass-plus text-white text-2xl"></i></div>
+                        </div>
+                        <h4 class="font-bold text-sm text-white">8-Person Tent & 6-Person Tent</h4>
+                        <div class="flex justify-between items-center mt-1">
+                            <span class="text-[10px] text-gray-400">Rs. 7000 / 2 Days</span>
+                            <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">Pending</span>
+                        </div>
+                    </div>
+
+                    <!-- Sleeping Bag Image -->
+                    <div class="bg-gray-900/60 rounded-xl p-2 border border-white/5 hover:border-emerald-500/50 transition">
+                        <div class="overflow-hidden rounded-lg mb-2 group relative cursor-pointer" onclick="openLightbox('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTLTwQBDHo-M53r-l2uk8QYjpcs2ctbO_fy-lrNpKjjVYGxAroUNMdBVf87&s=10')">
+                            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTLTwQBDHo-M53r-l2uk8QYjpcs2ctbO_fy-lrNpKjjVYGxAroUNMdBVf87&s=10" class="w-full h-32 object-cover transition duration-300 group-hover:scale-110 zoomable" alt="Sleeping Bags">
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center"><i class="fa-solid fa-magnifying-glass-plus text-white text-2xl"></i></div>
+                        </div>
+                        <h4 class="font-bold text-sm text-white">2 Windproof Stoves</h4>
+                        <div class="flex justify-between items-center mt-1">
+                            <span class="text-[10px] text-gray-400">Rs. 2000 /2 Days</span>
+                            <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">Pending</span>
+                        </div>
+                    </div>
+
+                    <!-- Headlamps Image -->
+                    <div class="bg-gray-900/60 rounded-xl p-2 border border-white/5 hover:border-emerald-500/50 transition">
+                        <div class="overflow-hidden rounded-lg mb-2 group relative cursor-pointer" onclick="openLightbox('https://img.drz.lazcdn.com/static/lk/p/100aaddb6923ec35cad76086d4fc358e.jpg_720x720q80.jpg')">
+                            <img src="https://img.drz.lazcdn.com/static/lk/p/100aaddb6923ec35cad76086d4fc358e.jpg_720x720q80.jpg" class="w-full h-32 object-cover transition duration-300 group-hover:scale-110 zoomable" alt="Headlamps">
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center"><i class="fa-solid fa-magnifying-glass-plus text-white text-2xl"></i></div>
+                        </div>
+                        <h4 class="font-bold text-sm text-white">2 Gas Cannnisters</h4>
+                        <div class="flex justify-between items-center mt-1">
+                            <span class="text-[10px] text-gray-400">Rs. 2000 / Want Buy</span>
+                            <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">Pending</span>
+                        </div>
+                    </div>
+
+<!-- Headlamps Image -->
+                    <div class="bg-gray-900/60 rounded-xl p-2 border border-white/5 hover:border-emerald-500/50 transition">
+                        <div class="overflow-hidden rounded-lg mb-2 group relative cursor-pointer" onclick="openLightbox('https://static-01.daraz.lk/p/40da94cf1792cf427638a72c3c6886b8.jpg')">
+                            <img src="https://static-01.daraz.lk/p/40da94cf1792cf427638a72c3c6886b8.jpg" class="w-full h-32 object-cover transition duration-300 group-hover:scale-110 zoomable" alt="Headlamps">
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center"><i class="fa-solid fa-magnifying-glass-plus text-white text-2xl"></i></div>
+                        </div>
+                        <h4 class="font-bold text-sm text-white">1 BBQ Grill</h4>
+                        <div class="flex justify-between items-center mt-1">
+                            <span class="text-[10px] text-gray-400">Rs. 1000 / 2 Days</span>
+                            <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">Pending</span>
+                        </div>
+                    </div>
+
+                    <!-- Backpacks Image -->
+                    <div class="bg-gray-900/60 rounded-xl p-2 border border-white/5 hover:border-emerald-500/50 transition">
+                        <div class="overflow-hidden rounded-lg mb-2 group relative cursor-pointer" onclick="openLightbox('https://infinitypoint.lk/wp-content/uploads/2025/09/CS-05-01.webp')">
+                            <img src="https://infinitypoint.lk/wp-content/uploads/2025/09/CS-05-01.webp" class="w-full h-32 object-cover transition duration-300 group-hover:scale-110 zoomable" alt="Backpacks">
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center"><i class="fa-solid fa-magnifying-glass-plus text-white text-2xl"></i></div>
+                        </div>
+                        <h4 class="font-bold text-sm text-white">2 Cooking Sets</h4>
+                        <div class="flex justify-between items-center mt-1">
+                            <span class="text-[10px] text-gray-400">Rs. 2000 / 2 Days</span>
+                            <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">Pending</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Other Gears Setup -->
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div class="glass-card p-3 rounded-xl flex flex-col justify-between hover:border-yellow-500/50 transition transform hover:-translate-y-1">
+                    <div>
+                        <div class="overflow-hidden rounded-lg mb-2 cursor-pointer" onclick="openLightbox('https://www.tentmaster.lk/wp-content/uploads/2023/07/Screen-Shot-2023-07-20-at-12.15.38-pm.png')">
+                            <img src="https://www.tentmaster.lk/wp-content/uploads/2023/07/Screen-Shot-2023-07-20-at-12.15.38-pm.png" class="w-full h-28 object-cover zoomable hover:scale-110 transition duration-300" alt="Gas Stove">
+                        </div>
+                        <h3 class="font-bold text-sm text-white">Hydration Pack</h3>
+                        <p class="text-xs text-gray-400 mt-1">මේ bag එක තියෙන්නෙ වතුර දාන්න බඩ පැත්තෙන් එල්ලගත්තම එකෙන් යන ගමන් උනත් වතුර බොතැකි.</p>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-white/10 flex justify-between items-center text-xs">
+                        <span class="text-yellow-400 font-bold">ඔනෙ වෙන උන් ඉන්නෝනම් උන්ගෙ සල්ලි වලින් ගන්න පුලුවන්</span>
+                    </div>
+                </div>
+
+                <div class="glass-card p-3 rounded-xl flex flex-col justify-between hover:border-orange-500/50 transition transform hover:-translate-y-1">
+                    <div>
+                        <div class="overflow-hidden rounded-lg mb-2 cursor-pointer" onclick="openLightbox('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTz2j_1xdYoIyHy_6CnIInBm8uphf7w9KQ3fHMOpo5NO2_Ku9upSeIuP3Yy&s=10')">
+                            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTz2j_1xdYoIyHy_6CnIInBm8uphf7w9KQ3fHMOpo5NO2_Ku9upSeIuP3Yy&s=10" class="w-full h-28 object-cover zoomable hover:scale-110 transition duration-300" alt="Food Fuel">
+                        </div>
+                        <h3 class="font-bold text-sm text-white">Dry Bag</h3>
+                        <p class="text-xs text-gray-400 mt-1">ඔය Phone ඒව මේව ඔක්කොම කිසි ප්‍රශ්නයක් ඇතුව pack කරන්න පුල්වන්.</p>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-white/10 flex justify-between items-center text-xs">
+                        <span class="text-orange-400 font-bold">මෙකක් ගෙදර තියෙන උන් ගෙනහන් මේක වටිනවා</span>
+                    </div>
+                </div>
+
+
+                <div class="glass-card p-3 rounded-xl flex flex-col justify-between hover:border-orange-500/50 transition transform hover:-translate-y-1">
+                    <div>
+                        <div class="overflow-hidden rounded-lg mb-2 cursor-pointer" onclick="openLightbox('https://www.nanotek.lk/storage/products/841/QyBpVxVXrRNuwL7UumswzvwcVW6DB5FfV9kcFEll.webp')">
+                            <img src="https://www.nanotek.lk/storage/products/841/QyBpVxVXrRNuwL7UumswzvwcVW6DB5FfV9kcFEll.webp" class="w-full h-28 object-cover zoomable hover:scale-110 transition duration-300" alt="Food Fuel">
+                        </div>
+                        <h3 class="font-bold text-sm text-white">Mini Projecter</h3>
+                        <p class="text-xs text-gray-400 mt-1">මේක දනිදුවා ගෙන්නම් කිව්වා.</p>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-white/10 flex justify-between items-center text-xs">
+                        <span class="text-orange-400 font-bold">💖</span>
+                    </div>
+                </div>
+
+<div class="glass-card p-3 rounded-xl flex flex-col justify-between hover:border-orange-500/50 transition transform hover:-translate-y-1">
+                    <div>
+                        <div class="overflow-hidden rounded-lg mb-2 cursor-pointer" onclick="openLightbox('https://www.shreepujashop.co.za/image/cache/catalog/PRODUCTS/White-cloth-puja_-500x500.jpg')">
+                            <img src="https://www.shreepujashop.co.za/image/cache/catalog/PRODUCTS/White-cloth-puja_-500x500.jpg" class="w-full h-28 object-cover zoomable hover:scale-110 transition duration-300" alt="Food Fuel">
+                        </div>
+                        <h3 class="font-bold text-sm text-white">ටිකක් ලොකු සුදු රෙද්දක්</h3>
+                        <p class="text-xs text-gray-400 mt-1">Projecter එකේ තිරයට ගන්න.</p>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-white/10 flex justify-between items-center text-xs">
+                        <span class="text-orange-400 font-bold">තියෙන එකෙක් ගේන්න.</span>
+                    </div>
+                </div>
+
+                <div class="glass-card p-3 rounded-xl flex flex-col justify-between hover:border-red-500/50 transition transform hover:-translate-y-1">
+                    <div>
+                        <div class="overflow-hidden rounded-lg mb-2 cursor-pointer" onclick="openLightbox('https://img.drz.lazcdn.com/g/kf/S158f3fc406004e9088c4f5984a6b618eI.jpg_960x960q80.jpg_.webp')">
+                            <img src="https://img.drz.lazcdn.com/g/kf/S158f3fc406004e9088c4f5984a6b618eI.jpg_960x960q80.jpg_.webp" class="w-full h-28 object-cover zoomable hover:scale-110 transition duration-300" alt="First Aid">
+                        </div>
+                        <h3 class="font-bold text-sm text-white">Tarpaulin Ground sheets</h3>
+                        <p class="text-xs text-gray-400 mt-1">මේක බ්මට දාන්න තමා ගන්නෙ.</p>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-white/10 flex justify-between items-center text-xs">
+                        <span class="text-red-400 font-bold">ගෙදර තියෙන උන් අරන් වරෙල්ලා.</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECTION 3: DETAILED TIME-BLOCK ITINERARY ================= -->
+        <section id="itinerary" class="mb-14">
+            <div class="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
+                <h2 class="text-3xl font-black">Detailed Master Timeline</h2>
+                <div class="flex gap-2">
+                    <span class="text-xs bg-cyan-500/20 text-cyan-300 px-3 py-1 rounded-full font-bold">Day 01 & 02</span>
+                </div>
+            </div>
+
+            <!-- ================= DAY 01 ================= -->
+            <div class="mb-10">
+                <h3 class="text-xl font-bold text-cyan-400 mb-6 flex items-center gap-2 bg-cyan-950/40 p-3 rounded-xl border border-cyan-500/20">
+                    <i class="fa-solid fa-sun text-yellow-400"></i> DAY 01: Departure, Hiking & Camping Night
+                </h3>
+
+                <div class="space-y-6">
+                   <!-- ================= Time Block 1: Horana Pickup ================= -->
+<div class="glass-panel p-5 rounded-2xl border border-cyan-500/30 bg-cyan-950/10 relative shadow-lg">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between md:items-center gap-3 mb-4 border-b border-cyan-500/20 pb-3">
+        <h4 class="font-extrabold text-lg text-cyan-200 flex items-center gap-2">
+            📍 Horana Pickup & Travel Start
+        </h4>
+        <span class="text-xs font-mono font-bold text-cyan-300 bg-cyan-500/20 px-3 py-1.5 rounded-full border border-cyan-500/30 w-fit">
+            05:00 AM - 06:30 AM
+        </span>
+    </div>
+
+    <!-- Grid Content -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        
+        <!-- Left Column: Details & Rules (Takes 2 Columns on Desktop) -->
+        <div class="md:col-span-2 flex flex-col justify-between">
+            <ul class="text-sm text-gray-300 space-y-3 bg-gray-900/40 p-4 rounded-xl border border-gray-700/50 mb-3">
+                <li class="flex items-start gap-2">
+                    <i class="fa-solid fa-location-dot text-cyan-400 mt-1 text-xs"></i>
+                    <span>හොරණ ඔරලෝසු කණුව ගාව (මහජන ක්‍රීඩාංගණය ඉස්සරහ අර ඉඩ තියෙන තැන) 05:00 AM වෙද්දි එතන ඉදහල්ලා.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <i class="fa-solid fa-hands-praying text-cyan-400 mt-1 text-xs"></i>
+                    <span>මගදී පඩුරක් දාල යන මතක් කරහන් ගමනෙ ආරක්ශාවට.</span>
+                </li>
+            </ul>
+
+            <!-- Alert Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div class="p-3 bg-amber-950/40 border border-amber-500/30 rounded-xl text-amber-200">
+                    <i class="fa-solid fa-kit-medical text-amber-400 mr-1"></i> 
+                    <strong>Gear Check:</strong> Van cash, panduru & personal bags, Money and Other.
+                </div>
+                <div class="p-3 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-emerald-200">
+                    <i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> 
+                    <strong>Rule:</strong> ගානට 5:00 වෙද්දි වරෙල්ලා 05:30 වෙද්දිවත් මෙහෙන් පිටත් වෙන්න ඕනෙ.
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Perfectly Fitted Google Street View Map -->
+        <div class="md:col-span-1 h-full min-h-[220px]">
+            <div class="w-full h-full min-h-[220px] rounded-xl overflow-hidden border border-cyan-500/30 shadow-md relative">
+                <iframe src="https://www.google.com/maps/embed?pb=!4v1790836515211!6m8!1m7!1sypAlMQLBzaOMg1DHjOny9A!2m2!1d6.714236545075786!2d80.06244468860096!3f100.8435689736616!4f-15.059069818279397!5f0.4000000000000002" 
+                        class="w-full h-full absolute inset-0 border-0" 
+                        allowfullscreen="" 
+                        loading="lazy" 
+                        referrerpolicy="strict-origin-when-cross-origin">
+                </iframe>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+                    <!-- Time Block 2 -->
+                    <div class="glass-panel p-5 rounded-2xl border-dawn relative">
+                        <div class="flex flex-col md:flex-row justify-between md:items-center gap-2 mb-3">
+                            <h4 class="font-extrabold text-base text-cyan-200">🌊 Belihuloya River Breakfast & Rent Pickup</h4>
+                            <span class="text-xs font-mono font-bold text-cyan-400 bg-cyan-500/10 px-3 py-1 rounded-full border border-cyan-500/30">06:30 AM - 09:30 AM</span>
+                        </div>
+                        <ul class="list-disc pl-5 text-sm text-gray-300 space-y-2 mb-3">
+                            <li>රත්නපුර Travelgears එකට ගිහින් අර මන් දාපු බඩු list එක ගන්නවා.</li>
+                            <li>ඊටපස්සේ බෙලිහුල්ඔය රෙස්ට් හවුස් එක ළඟ ගඟ අයිනේ ගෙදරින් ගෙනාපු බත් ටික කනවා Van එක නවත්තලා.</li>
+                        </ul>
+ <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 pt-3 border-t border-white/5 text-xs">
+                                    <div class="text-amber-300"><i class="fa-solid fa-kit-medical mr-1"></i> <strong>Gear Check:</strong> බත් මුල් එතන දාලා යන්න එපා.</div>
+                                    <div class="text-emerald-300"><i class="fa-solid fa-circle-check mr-1"></i> <strong>Rule:</strong> නාන්න තහනම් 🚫.</div>
+                                </div>
+                        <div class="grid grid-cols-3 gap-2 my-3">
+                          <img src="https://www.attractionsinsrilanka.com/wp-content/uploads/2018/03/39958492071_4d0e36bb7f_b-800x600-1.jpg" class="h-32 w-full object-cover rounded-lg" alt="Belihuloya River">
+                            <img src="https://cf.bstatic.com/xdata/images/hotel/max1024x768/446449624.jpg?k=07560a12f8b38e5222b31b3a229e61ae9e5d22bd96f5d2b9ac021c61f1151623&o=" class="h-32 w-full object-cover rounded-lg" alt="Gear Pickup">
+                            <img src="https://watchinglanka.com/api/media/uploads/2020/06/Belihuloya-future-min-1024x375.jpg" class="h-32 w-full object-cover rounded-lg" alt="Breakfast Spot">
+                        </div>
+                    </div>
+
+                    <!-- UPGRADED: EN-ROUTE SHOPPING BOX -->
+                    <div class="glass-panel p-6 rounded-2xl border-l-4 border-yellow-500 bg-yellow-950/20 relative transform hover:scale-[1.01] transition duration-300">
+                        <div class="absolute -right-10 -top-10 text-yellow-500/10 text-9xl"><i class="fa-solid fa-cart-shopping"></i></div>
+                        <h4 class="font-extrabold text-lg text-yellow-400 mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-basket-shopping text-xl"></i> මගදි කඩෙන් ගන්න ඕන බඩු (En-route Shopping)
+                        </h4>
+                        <p class="text-xs text-gray-300 mb-4">කන්ද පාමුලට යන්න කලින් බෙලිහුල්ඔය හරි පඹහින්න හන්දියෙන් හරි අනිවාර්යයෙන්ම මේ ටික අරන් යන්න ඕනේ.</p>
+                        
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 relative z-10">
+                            <div class="bg-gray-900/80 p-3 rounded-lg border border-yellow-500/30 flex items-center gap-3">
+                                
+                                <div><p class="text-sm font-bold text-white">Tang Packet එකක්, බිත්තර 11ක්, කොත්තු මී packet 6ක් 7ක් වගේ</p><p class="text-[10px] text-gray-400">● 3L,4L වගේ බීම හදන්න පුලුවන් තරමෙ එකක්</p><p class="text-[10px] text-gray-400">● රෑ කෑම එකට තමයි නූඩ්ල්ස් නුයි බිත්තරයි</p></div>
+                            </div>
+                            <div class="bg-gray-900/80 p-3 rounded-lg border border-yellow-500/30 flex items-center gap-3">
+                                
+                                <div><p class="text-sm font-bold text-white">පාන් & පාන් පිටි</p><p class="text-[10px] text-gray-400">● කන්ද නැග්ගට පස්සෙ කන්න.(හොදිත් ගන්න මතක් කරහන් මොනාහරි)</p><p class="text-[10px] text-gray-400">● ඊලග දවසෙ උදේට රොටි කන්න පාන් පිටි එපැයි.(ලුනුමිරිස් කවුරුහරි ගෙදරින් හදාගෙන ගෙනාවනම් හරි නරක් වෙන්නැතුව තියගන්න පුලුවන්නම්)</p></div>
+                            </div>
+                            <div class="bg-gray-900/80 p-3 rounded-lg border border-yellow-500/30 flex items-center gap-3">
+                                
+                                <div><p class="text-sm font-bold text-white">BBQ දාන්න ඕනෙ ඒවා</p><p class="text-[10px] text-gray-400">● Forzen මස් , මාලු , තිබ්බොත් බඩඉරිගු.</p><p class="text-[10px] text-gray-400">● Astra, ගම්මිරිස් , ලුනු කුඩු.( මේව කවුරුහරි ගෙදරින් ගෙනාවනම් හොදයි)</p></div>
+                            </div>
+                            <div class="bg-gray-900/80 p-3 rounded-lg border border-yellow-500/30 flex items-center gap-3">
+                               
+                                <div><p class="text-sm font-bold text-white">Nescafe එකක්, බීම බෝතල් 2L ඒව 3ක් වගේ</p><p class="text-[10px] text-gray-400">● Bite 3kg කලින් දවසේ ගේනවා</p><p class="text-[10px] text-gray-400">● බිස්කට් හරි මොනහරි පලතුරු හරි තියේනම්න් ඒවත් ගෙනහල්ලා</p></div>
+ 
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================= ALGORITHM CONDITIONAL ROUTE (Bakers Bend & Pahanthudawa) ================= -->
+                    <div class="flex flex-col items-center">
+                        <div class="h-8 w-0.5 bg-gray-500/50"></div>
+                        <span class="text-xs font-bold text-gray-400 bg-gray-800 px-3 py-1 rounded-full border border-gray-700">මේ තැන් දෙකට උබලගෙන් වැඩි කට්ටියකට යන්න ඕනෙනම් පසනත් අවුලක් නැත්තන් යන් මටනම් යන්න ඕනෙ නැ.</span>
+                        <div class="h-8 w-0.5 bg-gray-500/50"></div>
+                    </div>
+                    
+                    <div class="glass-panel p-6 rounded-2xl border-l-4 border-dashed border-purple-500 relative bg-purple-900/10 algo-path">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="font-extrabold text-lg text-purple-300"><i class="fa-solid fa-code-branch mr-2"></i> මේ පැත්තෙ Photo ගහන්න පුලුවන් place දෙකක්</h4>
+                            <span class="text-[10px] bg-purple-500/20 text-purple-200 px-2 py-1 rounded border border-purple-500/30">Photo Options</span>
+                        </div>
+                        <p class="text-xs text-gray-300 mb-5">යනවනම් මෙතනින් එකකට විතරයි යන්න වෙලා තියෙන්නෙ එකක් තෝරගන්න මෙතන්ට දුරයි ඉතින්.</p>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+ <!-- Branch A: Pahanthudawa -->
+                            <div class="bg-gray-900/80 p-4 rounded-xl border border-white/10 hover:border-teal-500/50 transition duration-300 group">
+                                <div class="flex items-center gap-2 mb-3 border-b border-white/10 pb-2">
+                                    <span class="bg-teal-500/20 text-teal-400 text-xs font-bold px-2 py-1 rounded">Option A</span>
+                                    <h5 class="font-bold text-white text-sm">💧 පහන්තුඩාව ඇල්ල</h5>
+                                </div>
+                                <div class="text-xs text-gray-300 space-y-2 mb-4 leading-relaxed">
+                                    <p><strong><i class="fa-solid fa-map-pin text-teal-400"></i> Stop 2:</strong> බෙලිහුල්ඔය සිට පහන්තුඩාව පාර</p>
+                                    <p class="text-gray-400 text-[11px] ml-4">මෙතන්ටනම් යන පාරෙම යද්දි සෙට් වෙනව පොඩි දුරයි.</p>
+                                    
+                                    <p class="mt-3"><strong><i class="fa-solid fa-camera text-teal-400"></i> Stop 3:</strong> පහන්තුඩාව ගල් තලාව</p>
+                                    <p class="text-gray-400 text-[11px] ml-4">නාන්න තහනම්🚫</p>
+                                    <p class="text-teal-300 bg-teal-950/40 inline-block px-2 py-0.5 rounded ml-4">🚗 අමතර කාලය: විනාඩි 45 යි | Ticket: Rs. 50</p>
+                                </div>
+                                <!-- Location Collage -->
+                                <div class="grid grid-cols-2 gap-2 mt-auto">
+                                    <img onclick="openLightbox(this.src)" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcST82SOseT2Gfyc8Kqrkx25hkndd3T9LQC60Y7AlmSk2V-ic3d6zmQqp0w-&s=10" class="w-full h-40 object-cover rounded-lg group-hover:opacity-80 transition zoomable" alt="Waterfall 1">
+                                    <img onclick="openLightbox(this.src)" src="https://www.theglenrock.com/wp-content/uploads/2025/08/pahanthudawa-1.jpg" class="w-full h-full object-cover rounded-lg group-hover:opacity-80 transition zoomable" alt="Waterfall 2">
+                                </div>
+                            </div>
+                            
+                            <!-- Branch B: Bakers Bend -->
+                            <div class="bg-gray-900/80 p-4 rounded-xl border border-white/10 hover:border-pink-500/50 transition duration-300 group">
+                                <div class="flex items-center gap-2 mb-3 border-b border-white/10 pb-2">
+                                    <span class="bg-pink-500/20 text-pink-400 text-xs font-bold px-2 py-1 rounded">Option B</span>
+                                    <h5 class="font-bold text-white text-sm">⛰️ Bakers Bend (මෙතන්ට දුරයි නිකන් අපරාදෙ වෙලාවයි තෙලුයි මෙහෙ ගියොත් ඉතින්)</h5>
+                                </div>
+                                <div class="text-xs text-gray-300 space-y-2 mb-4 leading-relaxed">
+                                    <p><strong><i class="fa-solid fa-map-pin text-pink-400"></i> Stop 2:</strong> නන්පෙරියල් පාරට හැරීම (පඹහින්න හන්දිය)</p>
+                                    <p class="text-gray-400 text-[11px] ml-4">(මෙතනින් තමයි ප්‍රධාන පාරෙන් අයින් වෙලා කඳු පාරට දාන්නේ)</p>
+                                    <p class="text-pink-300 bg-pink-950/40 inline-block px-2 py-0.5 rounded ml-4">🚗 දුර: 11 km උඩට | ගතවන කාලය: විනාඩි 40 යි (පාර පටු/වංගු නිසා)</p>
+                                    
+                                    <p class="mt-3"><strong><i class="fa-solid fa-camera text-pink-400"></i> Stop 3:</strong> බේකර්ස් බෙන්ඩ් (උදේ 9:30 ට පමණ)</p>
+                                    <p class="text-gray-400 text-[11px] ml-4">විස්තරේ: වෑන් එකේම උඩට ඇවිත්, කන්ද පාමුල පේන පට්ට ලස්සන අශ්ව ලාඩමේ වංගුවෙදි ෆොටෝස්/වීඩියෝ ටික ගහගන්නවා.</p>
+                                    <p class="text-pink-300 bg-pink-950/40 inline-block px-2 py-0.5 rounded ml-4">🚗 දුර: 7 km පල්ලෙහාට | ගතවන කාලය: විනාඩි 20 යි</p>
+                                </div>
+                                <!-- Location Collage -->
+                                <div class="grid grid-cols-2 gap-2 mt-auto">
+                                    <img onclick="openLightbox(this.src)" src="https://watchinglanka.com/api/media/uploads/2020/09/Bakers-Bend-in-Sri-Lanka-min-1024x375.jpg" class="w-full h-20 object-cover rounded-lg group-hover:opacity-80 transition zoomable" alt="Mountain Bend">
+                                    <img onclick="openLightbox(this.src)" src="https://cdn.getyourguide.com/image/format=auto%2Cfit=crop%2Cgravity=auto%2Cquality=60%2Cwidth=375%2Cheight=375%2Cdpr=2/tour_img/7cc846cd6486725d17caedbdfe99a1b3ed235dc2715b0722b1c1429f1ae1ef1a.jpg" class="w-full h-20 object-cover rounded-lg group-hover:opacity-80 transition zoomable" alt="Bakers Bend View">
+                                </div>
+                            </div>
+
+                           
+                        </div>
+
+                        <!-- Direct Bypass Line -->
+                        <div class="mt-6 flex flex-col items-center">
+                            <div class="h-6 w-0.5 bg-gray-500/50"></div>
+                            <span class="text-xs font-bold text-gray-300 bg-gray-800/80 px-4 py-1.5 rounded-full border border-gray-600/50 hover:bg-gray-700 transition cursor-pointer">
+                                නැත්තන් කෙලින්ම ගමන යන් මේ දෙකට යන්නෙ නැතුව. (Direct Base) <i class="fa-solid fa-arrow-down ml-1 text-cyan-400"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <!-- ================= END ALGORITHM ================= -->
+
+                    <!-- Time Block 3 -->
+                    <div class="glass-panel p-5 rounded-2xl border-day relative mt-6">
+                        <div class="flex flex-col md:flex-row justify-between md:items-center gap-2 mb-3">
+                            <h4 class="font-extrabold text-base text-emerald-200">🥾 The Ascent: Hiking Hawagala Mountain</h4>
+                            <span class="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/30">10:30 AM - 02:00 PM</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <ul class="list-disc pl-5 text-sm text-gray-300 space-y-2 mb-4">
+                                    <li>පඹහින්නෙන් ලාදු යාය පැත්තෙ ගෙදරක හරි තියෙන තැනක වාහනෙ park කරලා යන්මු (Parking Rs.500-Rs.1500) ඊටපස්සෙ කන්ද නගිමු.</li>
+                                    <li>පයිනස් කැලේ -> ගල් තලාව -> මාන කැලේ හරහා මුදුනට.</li>
+                                </ul>
+                                <div class="p-3 bg-red-950/40 border border-red-500/30 rounded-xl text-xs text-red-200">
+                                    <i class="fa-solid fa-bug text-red-400 mr-1"></i> <strong>Rules:</strong> සපත්තු දාන් කුඩැල්ලොන්ට cover වෙන්න mase දාන් හරි මේස් නැති උන් ලුනු හරි දාන් නගිමු. ලොකු කෝටි ටිකකුත් හොයාගන්න පාර එලිකර කර යන්න ඕනෙ සත්තු ඉන්න පුලුවන්.
+                                </div>
+
+                                <div class="p-3 bg-red-950/40 border border-red-500/30 rounded-xl text-xs text-red-200">
+                                    <i class="fa-solid fa-bug text-red-400 mr-1"></i> <strong>Rules:</strong> යන ගමන් පාර මොනාහරි විදියකින් ලකුන්නු කරගෙනත් යමු. යන ගමන් ඉදලා හිටලා පිටිපස්සත් බලන්න පාර මතක හිටින්න.
+                                </div>
+                            </div>
+                            <img src="https://i.postimg.cc/P5ykPR4p/Snap-Insta-to-649679486-18055335059700840-6388175680921776274-n.webp" class="w-full h-full object-cover rounded-xl border border-white/10" alt="Hiking">
+                        </div>
+                    </div>
+
+                   <!-- ================= Time Block 4: Summit Arrival & Tents ================= -->
+<div class="glass-panel p-5 rounded-2xl border border-orange-500/30 bg-orange-950/10 relative mt-6 shadow-[0_0_15px_rgba(249,115,22,0.1)]">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between md:items-center gap-3 mb-5 border-b border-orange-500/20 pb-3">
+        <h4 class="font-extrabold text-lg text-orange-200 flex items-center gap-2">
+            ⛺ Summit Arrival, Tent Pitching & BBQ Prep
+        </h4>
+        <span class="text-xs font-mono font-bold text-orange-300 bg-orange-500/20 px-3 py-1.5 rounded-full border border-orange-500/30 whitespace-nowrap w-fit">
+            02:00 PM - 05:00 PM
+        </span>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Left Side: Instructions -->
+        <div class="flex flex-col h-full">
+            <ul class="text-sm text-gray-300 space-y-3 bg-gray-900/40 p-4 rounded-xl border border-gray-700/50 h-full">
+                <li class="flex items-start gap-2">
+                    <i class="fa-solid fa-arrow-right text-orange-500/70 mt-1 text-xs"></i> 
+                    <span>මුදුනට ගිහින් පාන් කාල බීම ටිකක් බීල විනාඩි 30ක් විතර rest කරනවා.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <i class="fa-solid fa-arrow-right text-orange-500/70 mt-1 text-xs"></i> 
+                    <span>ඊටපස්සෙ හොද place එකක් බලලා Tents ගහන්න ඕනෙ. (Tents ගහන්නයි එතන අස් පස් කරන වැඩ වලට 7ක් 8ක් ඉන්න ඕනෙ)</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <i class="fa-solid fa-arrow-right text-orange-500/70 mt-1 text-xs"></i> 
+                    <span>ඉතුරු උන් ටික දර හොයාගෙන ඇවිත් ගිනිමැලෙ ගහන්න ඕනෙ තැන හදන්න ඕනෙ.</span>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- Right Side: Stacked Videos -->
+        <div class="flex flex-col gap-4">
+            <!-- Tent Setup Video -->
+            <div class="bg-gray-900/60 p-3 rounded-xl border border-orange-500/20 hover:border-orange-500/50 transition">
+                <p class="text-xs font-bold text-orange-300 mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-video text-orange-500"></i> 2x දාලා හරි හැමෝම බලහල්ලා: Tent එක ගහන හැටි 
+                </p>
+                <!-- Responsive Iframe Wrapper -->
+                <div class="relative w-full aspect-video rounded-lg overflow-hidden border border-white/10 shadow-inner">
+                    <iframe class="absolute top-0 left-0 w-full h-full" src="https://www.youtube.com/embed/VubNqS9E30o" title="Pitching Tent Guide" allowfullscreen></iframe>
+                </div>
+            </div>
+            
+            <!-- Campfire Video -->
+            <div class="bg-gray-900/60 p-3 rounded-xl border border-orange-500/20 hover:border-orange-500/50 transition">
+                <p class="text-xs font-bold text-orange-300 mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-video text-orange-500"></i> 2x දාලා හරි හැමෝම බලහල්ලා: ගිනිමැලේ ගහන හැටි
+                </p>
+                <!-- Responsive Iframe Wrapper -->
+                <div class="relative w-full aspect-video rounded-lg overflow-hidden border border-white/10 shadow-inner">
+                    <iframe class="absolute top-0 left-0 w-full h-full" src="https://www.youtube.com/embed/VubNqS9E30o" title="Campfire Guide" allowfullscreen></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ================= Time Block 5: Evening BBQ & Campfire ================= -->
+<div class="glass-panel p-5 rounded-2xl border border-red-500/30 bg-red-950/10 relative mt-6 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between md:items-center gap-3 mb-5 border-b border-red-500/20 pb-3">
+        <h4 class="font-extrabold text-lg text-red-300 flex items-center gap-2">
+            🔥 Evening Vibes: BBQ & Campfire
+        </h4>
+        <span class="text-xs font-mono font-bold text-red-300 bg-red-500/20 px-3 py-1.5 rounded-full border border-red-500/30 whitespace-nowrap w-fit">
+            05:00 PM - 08:30 PM
+        </span>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Left Side: Texts & Alerts -->
+        <div class="flex flex-col gap-4">
+            <ul class="text-sm text-gray-300 space-y-3 bg-gray-900/40 p-4 rounded-xl border border-gray-700/50">
+                <li class="flex items-start gap-2">
+                    <i class="fa-solid fa-check text-red-400 mt-1 text-xs"></i>
+                    <span>කට්ටියම එකතු වෙලා BBQ එක දාන ගමන් රෑ කෑම එක හදාගන්න ඕනෙ බඩු ටික ලෑස්ති කරලා තියමු.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <i class="fa-solid fa-check text-red-400 mt-1 text-xs"></i>
+                    <span>ඊලගට ගිනිමැලේ වටේට සෙට් වෙලා, සින්දු කියලා කයිය ගහලා ආතල් ගන්න තියෙන්නෙ.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <i class="fa-solid fa-check text-red-400 mt-1 text-xs"></i>
+                    <span>මදුරුවන්ට දාන හදුන්කුරු ඒව මේව පත්තු කරල පැගිරිතෙල් එහෙම ගාගමු නැත්තන් ඔය මොනාහරි දුමක් ගහමු මදුරුවො එන්නැති වෙන්න.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <i class="fa-solid fa-check text-red-400 mt-1 text-xs"></i>
+                    <span>රෑ වෙන්න කලින් lights ටිකත් හරියට balance කරන්න ඕනෙ.</span>
+                </li>
+            </ul>
+            
+            <!-- Safety Box -->
+            <div class="p-3 bg-orange-950/40 border-l-4 border-orange-500 rounded-r-xl text-sm shadow-md">
+                <div class="flex items-center gap-2 font-bold text-orange-300 mb-1">
+                    <i class="fa-solid fa-fire text-orange-400"></i> Safety First:
+                </div>
+                <p class="text-xs text-orange-200/80 pl-6">ගිනිමැලේ ගහද්දි tent එකට ටිකක් දුරින් හොද place එකකින් ගහන්න ඕනෙ.</p>
+            </div>
+
+            <!-- Rules Box -->
+            <div class="p-3 bg-red-950/40 border-l-4 border-red-500 rounded-r-xl text-sm shadow-md">
+                <div class="flex items-center gap-2 font-bold text-red-300 mb-1">
+                    <i class="fa-solid fa-triangle-exclamation text-red-400"></i> Rules:
+                </div>
+                <p class="text-xs text-red-200/80 pl-6">කැලේ සත්තු එන්න පුළුවන් නිසා කාල ඔය ටික හෝදල සුවද එන්නෙ නැතිවෙන්න pack කරන්න ඕනෙ. අනික tent එක ඇතුලෙ කිසිම කෑමක් තියාගන්නෙ නෑ දුර තැනකින් ඒව පරිස්සමට තියල තියන්න ඕනෙ.</p>
+            </div>
+        </div>
+        
+        <!-- Right Side: BBQ Video -->
+        <div class="flex flex-col h-full">
+            <div class="bg-gray-900/60 p-4 rounded-xl border border-red-500/20 hover:border-red-500/50 transition h-full flex flex-col justify-center">
+                <p class="text-sm font-bold text-red-300 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-fire-burner text-red-400"></i> BBQ දාන හැටි බලමු 
+                </p>
+                <!-- Responsive Iframe Wrapper -->
+                <div class="relative w-full aspect-video rounded-lg overflow-hidden border border-white/10 shadow-lg">
+                    <iframe class="absolute top-0 left-0 w-full h-full" src="https://www.youtube.com/embed/nF_L_i4P1gU" title="Campfire Cooking" allowfullscreen></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+                    <!-- Time Block 5 (Movie Cinema & Dinner) -->
+                    <div class="glass-panel p-5 rounded-2xl border-night relative">
+                        <div class="flex flex-col md:flex-row justify-between md:items-center gap-2 mb-3">
+                            <h4 class="font-extrabold text-base text-purple-200">🎬 Starlight Cinema & Hot Noodles Dinner</h4>
+                            <span class="text-xs font-mono font-bold text-purple-400 bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/30">08:30 PM - 12:00 AM</span>
+                        </div>
+                        <ul class="list-disc pl-5 text-sm text-gray-300 space-y-2 mb-4">
+                            <li>නූඩ්ල්ස් නුයි බිත්තර තම්බගන්නයි ඕනෙ ඊටපස්සෙ කන්න්න පුලුවන්.</li>
+                            <li>ඊටපස්සෙ mini projector එකයි bluetooth speaker එකයි සෙට් කරගෙන Film එක බලනවා.ඊටපස්සෙ නිදාගන්න යනවා. පාන්දර 5:30 වෙද්දිවත් නැගිටහල්ලා නින්හ ගියොත් 6 වගෙ වෙද්දි sun rice එක මීදුම බලතැකි ඒක බැලුවෙ නැතිඋනොත් වැඩක් නැ</li>
+                        </ul>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Campfire Cooking Idea -->
+                            <div class="bg-gray-900/80 p-3 rounded-xl border border-white/10">
+                                <p class="text-[10px] font-bold text-orange-300 mb-2"><i class="fa-solid fa-fire-burner mr-1"></i> Cooking Idea: Easy Camp Meals</p>
+                                <div class="video-wrapper">
+                                    <iframe src="https://www.youtube.com/embed/nF_L_i4P1gU" title="Campfire Cooking" allowfullscreen></iframe>
+                                </div>
+                            </div>
+                            
+                            <!-- Movie Trailer Embed -->
+                            <div class="bg-purple-950/40 p-3 rounded-xl border border-purple-500/30">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-[10px] font-bold text-purple-300"><i class="fa-solid fa-film mr-1"></i> Feature Movie: HOKUM (2026)</span>
+                                    <span class="text-[10px] bg-purple-500/20 text-purple-200 px-2 py-0.5 rounded">Trailer</span>
+                                </div>
+                                <div class="video-wrapper">
+                                    <iframe src="https://www.youtube.com/embed/LWFqnGAsQo8" title="Hokum Movie Trailer" allowfullscreen></iframe>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= DAY 02 ================= -->
+           <!-- ================= DAY 02 SECTION ================= -->
+<div class="mt-12">
+    <h3 class="text-xl md:text-2xl font-bold text-cyan-300 mb-6 flex items-center gap-3 bg-cyan-950/40 p-4 rounded-xl border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
+        <i class="fa-solid fa-cloud-sun text-cyan-400 text-2xl"></i> DAY 02: Misty Morning, Descent & River Bath
+    </h3>
+
+    <div class="space-y-6">
+        
+        <!-- ================= Block 1: Morning & Breakfast ================= -->
+        <div class="glass-panel p-5 rounded-2xl border border-cyan-500/30 bg-cyan-950/10 relative shadow-lg">
+            <!-- Header -->
+            <div class="flex flex-col md:flex-row justify-between md:items-center gap-3 mb-5 border-b border-cyan-500/20 pb-3">
+                <h4 class="font-extrabold text-lg text-cyan-200 flex items-center gap-2">
+                    ☕ Misty Sunrise & Hot Breakfast
+                </h4>
+                <span class="text-xs font-mono font-bold text-cyan-300 bg-cyan-500/20 px-3 py-1.5 rounded-full border border-cyan-500/30 w-fit">
+                    06:00 AM - 09:00 AM
+                </span>
+            </div>
+
+            <!-- Content Top: Text & Image -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="bg-gray-900/40 p-4 rounded-xl border border-gray-700/50 h-full">
+                    <ul class="text-sm text-gray-300 space-y-3">
+                        <li class="flex items-start gap-2">
+                            <i class="fa-solid fa-arrow-right text-cyan-500/70 mt-1 text-xs"></i> 
+                            <span>නැගිට්ට ගමන් Nescafe එකක් හදන් බීලා, පාන්දර ඉර පායනවා, මීදුම බලලා රවුමක් ගහනවා.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fa-solid fa-arrow-right text-cyan-500/70 mt-1 text-xs"></i> 
+                            <span>ඊටපස්සේ රොටි පුච්චනවා & Tang Packet එක හදලා ඒක බොනවා.</span>
+                        </li>
+                    </ul>
+                </div>
+                <!-- Image -->
+                <div class="h-full">
+                    <img src="https://images.stockcake.com/public/5/f/a/5fa67e9b-9a34-4c15-a9b0-88cca2cf0def_large/sunrise-mountain-view-stockcake.jpg" 
+                         class="w-full h-32 md:h-full object-cover rounded-xl border border-cyan-500/20 shadow-md" alt="Misty Sunrise">
+                </div>
+            </div>
+
+            <!-- Content Bottom: 3 Videos Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <!-- Video 1: Roti -->
+                <div class="bg-gray-900/60 p-3 rounded-xl border border-orange-500/20 hover:border-orange-500/50 transition">
+                    <p class="text-[11px] font-bold text-orange-300 mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-fire-burner text-orange-400"></i> රොටි පුච්චන හැටි
+                    </p>
+                    <div class="relative w-full aspect-video rounded-lg overflow-hidden border border-white/10">
+                        <iframe class="absolute top-0 left-0 w-full h-full" src="https://www.youtube.com/embed/nF_L_i4P1gU" title="Campfire Cooking" allowfullscreen></iframe>
+                    </div>
+                </div>
+
+                <!-- Video 2: Nescafe -->
+                <div class="bg-gray-900/60 p-3 rounded-xl border border-purple-500/30 hover:border-purple-500/50 transition">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-bold text-purple-300 flex items-center gap-2"><i class="fa-solid fa-mug-hot text-purple-400"></i> Nescafe හදන හැටි</span>
+                        <span class="text-[9px] bg-purple-500/20 text-purple-200 px-2 py-0.5 rounded">Food</span>
+                    </div>
+                    <div class="relative w-full aspect-video rounded-lg overflow-hidden border border-white/10">
+                        <iframe class="absolute top-0 left-0 w-full h-full" src="https://www.youtube.com/embed/LWFqnGAsQo8" title="Making Nescafe" allowfullscreen></iframe>
+                    </div>
+                </div>
+
+                <!-- Video 3: Tang -->
+                <div class="bg-gray-900/60 p-3 rounded-xl border border-yellow-500/20 hover:border-yellow-500/50 transition">
+                    <p class="text-[11px] font-bold text-yellow-300 mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-glass-water text-yellow-400"></i> Tang හදන හැටි
+                    </p>
+                    <div class="relative w-full aspect-video rounded-lg overflow-hidden border border-white/10">
+                        <iframe class="absolute top-0 left-0 w-full h-full" src="https://www.youtube.com/embed/nF_L_i4P1gU" title="Making Tang" allowfullscreen></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= Block 2: Pack Up & Descent ================= -->
+        <div class="glass-panel p-5 rounded-2xl border border-emerald-500/30 bg-emerald-950/10 relative shadow-lg">
+            <div class="flex flex-col md:flex-row justify-between md:items-center gap-3 mb-4 border-b border-emerald-500/20 pb-3">
+                <h4 class="font-extrabold text-lg text-emerald-300 flex items-center gap-2">
+                    🧹 Pack Up, LNT Cleanup & Descent
+                </h4>
+                <span class="text-xs font-mono font-bold text-emerald-300 bg-emerald-500/20 px-3 py-1.5 rounded-full border border-emerald-500/30 w-fit">
+                    09:00 AM - 11:30 AM
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-4">
+                <div class="md:col-span-2 bg-gray-900/40 p-4 rounded-xl border border-gray-700/50 flex flex-col justify-center">
+                    <ul class="text-sm text-gray-300 space-y-3">
+                        <li class="flex items-start gap-2">
+                            <i class="fa-solid fa-leaf text-emerald-400 mt-1 text-xs"></i>
+                            <span>ගිනිමැලේ 100% නිවාලා, අපෙ බඩු ඔක්කොම කුණු එකතුකරන් පහලට බහිනවා.</span>
+                        </li>
+                    </ul>
+                </div>
+                
+            </div>
+
+            <div class="flex items-center gap-3 p-3 bg-yellow-950/40 border-l-4 border-yellow-500 rounded-r-xl text-sm shadow-md">
+                <i class="fa-solid fa-person-hiking text-yellow-400 text-lg ml-2"></i>
+                <p class="text-yellow-200/90 font-medium text-sm">බහිද්දි පැය 2න් වගේ බැහැතැකී.</p>
+            </div>
+        </div>
+
+        <!-- ================= Block 3: River Bath ================= -->
+        <div class="glass-panel p-5 rounded-2xl border border-blue-500/30 bg-blue-950/10 relative shadow-lg">
+            <div class="flex flex-col md:flex-row justify-between md:items-center gap-3 mb-4 border-b border-blue-500/20 pb-3">
+                <h4 class="font-extrabold text-lg text-blue-300 flex items-center gap-2">
+                    🌊 Hirikatu Oya River Bath
+                </h4>
+                <span class="text-xs font-mono font-bold text-blue-300 bg-blue-500/20 px-3 py-1.5 rounded-full border border-blue-500/30 w-fit">
+                    12:00 PM - 02:00 PM
+                </span>
+            </div>
+ <div class="p-3 bg-red-950/40 border-l-4 border-red-500 rounded-r-xl text-sm shadow-md">
+                <div class="flex items-center gap-2 font-bold text-red-300 mb-1">
+                    <i class="fa-solid fa-triangle-exclamation text-red-400"></i> Rules:
+                </div>
+                <p class="text-xs text-red-200/80 pl-6">මේකෙ ගැබුරු තැන් වලට යන්නැතුව නාතැකි ඒතැන් වල දනහිසෙන් ටිකක් උඩට එනකන් විතරයි වතුර තියෙන්නෙ.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div class="md:col-span-2 bg-gray-900/40 p-4 rounded-xl border border-gray-700/50 flex flex-col justify-center">
+                    <ul class="text-sm text-gray-300 space-y-3">
+                        <li class="flex items-start gap-2">
+                            <i class="fa-solid fa-water text-blue-400 mt-1 text-xs"></i>
+                            <span>පඹහින්න හිරිකටු ඔයේ පැය 2ක් නාලා බලන්ගොඩින් දවල් බත් කෑම.</span>
+                        </li>
+                    </ul>
+                </div>
+
+
+           
+                <div class="h-full">
+                    <img src="https://preview.redd.it/hirikatu-oya-balangoda-sri-lanka-v0-q0udpoe1ptm41.jpg?auto=webp&s=d1eea36de6e1495c9612a15baf05e973ca457cc7" 
+                         class="w-full h-28 md:h-full object-cover rounded-xl border border-blue-500/20 shadow-md" alt="River Bath">
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= Block 4: Lunch & Journey Home ================= -->
+        <div class="glass-panel p-5 rounded-2xl border border-purple-500/30 bg-purple-950/10 relative shadow-lg">
+            <div class="flex flex-col md:flex-row justify-between md:items-center gap-3 mb-4 border-b border-purple-500/20 pb-3">
+                <h4 class="font-extrabold text-lg text-purple-300 flex items-center gap-2">
+                    🍛 Lunch & Journey Home
+                </h4>
+                <span class="text-xs font-mono font-bold text-purple-300 bg-purple-500/20 px-3 py-1.5 rounded-full border border-purple-500/30 w-fit">
+                    02:00 PM - 03:30 PM
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-4">
+                <div class="md:col-span-2 bg-gray-900/40 p-4 rounded-xl border border-gray-700/50 flex flex-col justify-center">
+                    <ul class="text-sm text-gray-300 space-y-3">
+                        <li class="flex items-start gap-2">
+                            <i class="fa-solid fa-utensils text-purple-400 mt-1 text-xs"></i>
+                            <span>රත්නපුර පැත්තෙ කඩේකින් දවල්ට rice & kottu කනවා.</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="h-full">
+                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRG2awawWsRiEnlVLEnHNVwCCUHDsIqKeyxs2s8mFjCIEhbRTRGliPOMXk&s=10" 
+                         class="w-full h-28 md:h-full object-cover rounded-xl border border-purple-500/20 shadow-md" alt="Lunch">
+                </div>
+            </div>
+
+            <div class="flex items-start gap-3 p-3 bg-yellow-950/40 border-l-4 border-yellow-500 rounded-r-xl text-sm shadow-md">
+                <i class="fa-solid fa-bus text-yellow-400 text-lg ml-2 mt-0.5"></i>
+                <p class="text-yellow-200/90 font-medium text-sm leading-relaxed">
+                    ඊටපස්සෙ කෙලින්ම ගෙදර යතැකි නැත්තන් ඔය පහල තියෙන තැන් වලින් එකකට ගිහින් ගෙදර යතැකි. ඕවගෙ නොයා ගියොත් 7ට කලින් හොරනට එතැකි. ඕවගෙ ගියොත් ගෙදර එද්දි රෑ 8:00, රෑ 8:30 වගේ වෙන්න පුලුවන් මටනම් අවුලක් නැ.
+                </p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+        <!-- ================= SECTION 4: SURPRISE FINALES ================= -->
+        <section id="finale" class="mb-14">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-black mb-2">The Grand Finale: 3 Surprise Options</h2>
+                <p class="text-xs text-gray-400">දවල්ට ඔය කියපු කඩෙන් හරි වෙන එකකින් හරි කෑවට පස්සේ කට්ටියට මහන්සි නැත්තන් කැමතිනම් විතරක් මේ තැන් වලට යතැකි කවුරු කැමති උනත් හැබැයි වාහනෙ අයිතිකාරයා (පසන්) අකමැතිනම් බෑ.එහෙම නැත්තන් කෙලින්ම ගෙදර යමන්ලා</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Option 1 -->
+                <div class="glass-panel p-5 rounded-2xl border-t-4 border-blue-500 hover:scale-105 transition duration-300 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="font-bold text-blue-300 text-base">🌊 Kalutara Beach</h3>
+                            <span class="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded">Option 1</span>
+                        </div>
+                        <ul class="list-disc pl-4 text-xs text-gray-300 space-y-2 mb-4">
+                            <li>රත්නපුරේ ඉදන් එනකොට හොරණට හැරෙන්නේ නැතුව, කෙලින්ම පැලවත්ත/මතුගම හරි දොඩංගොඩින් කළුතරට (A4/A8 මඟ ඇරලා) හැරිලා. </li>
+                            <li>නැත්තන් හොරණට ඇවිල්ලා හොරණ - කළුතර පාරෙන් (B157) විනාඩි 45කින් කළුතරට යන්න පුලුවන්.</li>
+                        </ul>
+                    </div>
+                    <div class="space-y-1.5 text-xs text-gray-400 border-t border-white/10 pt-3">
+                        <div class="flex justify-between"><span><i class="fa-solid fa-clock mr-1"></i>ගිහින් එහෙන් එද්දි වෙලාව Time:</span> <strong class="text-white">06:30 PM - 07:30 PM</strong></div>
+                        <div class="flex justify-between"><span><i class="fa-solid fa-coins mr-1"></i>(අමතර) Cost:</span> <strong class="text-green-400">Rs.2000 (තෙල් වලට ඒම ගානක් දෙන්න එපැයි.-එක්කෙනෙක්ගෙන් Rs 200ක් වගේ)</strong></div>
+                    </div>
+                </div>
+
+                  <!-- Option 1 -->
+                <div class="glass-panel p-5 rounded-2xl border-t-4 border-blue-500 hover:scale-105 transition duration-300 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="font-bold text-blue-300 text-base">🌊 Panadura Beach</h3>
+                            <span class="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded">Option 2</span>
+                        </div>
+                        <ul class="list-disc pl-4 text-xs text-gray-300 space-y-2 mb-4">
+                            <li>හවස 5:00 ට , උපරිම උනොත් 5:30 වෙද්දි පානදුර Beach එකට යන්න පුලුවන්.</li>
+                            <li>එතන ඉදලා ආතල් එකක් අරන් එන්න පුලුවන්.</li>
+                        </ul>
+                    </div>
+                    <div class="space-y-1.5 text-xs text-gray-400 border-t border-white/10 pt-3">
+                        <div class="flex justify-between"><span><i class="fa-solid fa-clock mr-1"></i> ගිහින් එහෙන් එද්දි වෙලාව Time:</span> <strong class="text-white">06:30 PM - 07:30 PM</strong></div>
+                        <div class="flex justify-between"><span><i class="fa-solid fa-coins mr-1"></i>(අමතර) Cost:</span> <strong class="text-green-400">Rs.2000(තෙල් වලට ඒම ගානක් දෙන්න එපැයි-එක්කෙනෙක්ගෙන් Rs 200ක් වගේ).</strong></div>
+                    </div>
+                </div>
+
+                <!-- Option 3 -->
+                <div class="glass-panel p-5 rounded-2xl border-t-4 border-yellow-500 hover:scale-105 transition duration-300 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="font-bold text-yellow-300 text-base"> කලු ගග</h3>
+                            <span class="text-[10px] bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded">Option 3</span>
+                        </div>
+                        <ul class="list-disc pl-4 text-xs text-gray-300 space-y-2 mb-4">
+                            <li>එනගමන් කලු ගග ගාව හොද place එකක නවත්තලා ඉදලා යතැකි</li>
+                            
+                        </ul>
+                    </div>
+                    <div class="space-y-1.5 text-xs text-gray-400 border-t border-white/10 pt-3">
+                        <div class="flex justify-between"><span><i class="fa-solid fa-clock mr-1"></i> ගිහින් එහෙන් එද්දි වෙලාව Time:</span> <strong class="text-white">06:00 PM</strong></div>
+                        <div class="flex justify-between"><span><i class="fa-solid fa-coins mr-1"></i> Cost:</span> <strong class="text-yellow-400">Rs.0</strong></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= NEW SECTION: LIVE MAP EMBED ================= -->
+        <section id="map" class="mb-14">
+            <div class="glass-panel p-6 rounded-2xl border border-cyan-500/20">
+                <div class="flex items-center gap-3 mb-4">
+                    <i class="fa-solid fa-map-location-dot text-cyan-500 text-2xl"></i>
+                    <h2 class="text-2xl font-bold text-cyan-100">Live Expedition Map</h2>
+                </div>
+                <p class="text-xs text-gray-400 mb-4">Hawagala, Belihuloya සහ Pahanthudawa අවට සම්පූර්ණ සිතියම මෙතනින් බලාගන්න පුළුවන්.</p>
+                
+                <div class="w-full h-80 rounded-xl overflow-hidden border border-white/10 relative">
+                    <!-- Google Maps Iframe -->
+                    <iframe 
+                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d126743.58586022846!2d80.75135111957018!3d6.721453255146869!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ae38bd94f87a80b%3A0x6b6d5162a3c77d54!2sHawagala!5e0!3m2!1sen!2slk!4v1700000000000!5m2!1sen!2slk" 
+                        width="100%" 
+                        height="100%" 
+                        style="border:0;" 
+                        allowfullscreen="" 
+                        loading="lazy" 
+                        referrerpolicy="no-referrer-when-downgrade">
+                    </iframe>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECTION 5: SAFETY & LEAVE NO TRACE ================= -->
+        <section id="safety" class="mb-10">
+            <div class="glass-panel bg-red-950/20 border border-red-500/30 p-6 rounded-2xl">
+                <div class="flex items-center gap-3 mb-6">
+                    <i class="fa-solid fa-shield-halved text-red-500 text-2xl"></i>
+                    <h2 class="text-2xl font-bold text-red-200">Safety & Rules (කැලෑ නීති)</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-gray-300">
+                    <div class="space-y-2">
+                        <h4 class="font-bold text-red-400 text-sm"><i class="fa-solid fa-recycle mr-1"></i> Leave No Trace (ආපහු ගේන්න ඕන දේවල්)</h4>
+                        <ul class="list-disc pl-4 space-y-1">
+                            <li>ඔක්කොම ප්ලාස්ටික් බෝතල්, පොලිතින්, ටින් ජාති ගේන්නම ඕනේ.</li>
+                            <li>කෑම ඉතුරු වුණොත් සත්තුන්ට කන්න දාලා එන්න එපා.</li>
+                            <li><strong>Toilet Protocol:</strong> කඳවුරෙන් සහ වතුර පාරවල් වලින් අවම මීටර් 50ක් ඈතට යන්න.</li>
+                        </ul>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h4 class="font-bold text-red-400 text-sm"><i class="fa-solid fa-phone-volume mr-1"></i> Emergency Contacts & Fire Safety</h4>
+                        <ul class="list-disc pl-4 space-y-1">
+                            <li>ගිනිමැලේ ගහද්දී මාන පඳුරු නැති ගල් තලාවක වටේට ගල් තියලා ගහන්න.</li>
+                            <li>පිටවෙන්න කලින් ගිනිමැලේට අනිවාර්යයෙන්ම වතුර දාලා පස් දාලා වහන්න.</li>
+                            <li><strong>Suwaseriya Ambulance:</strong> 1990 | <strong>Nearest Hospital:</strong> Balangoda Base Hospital</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="text-center py-6 text-gray-500 text-xs border-t border-white/10">
+            <p>Hawagala Expedition 2026 | Custom Built Interactive UI</p>
+        </footer>
+
+    </main>
+
+    <!-- Scripts -->
+    <script>
+        // Toggle Side Music Drawer
+        function toggleMusicDrawer() {
+            const drawer = document.getElementById('musicDrawer');
+            drawer.classList.toggle('translate-x-full');
+        }
+
+        // --- NEW: Lightbox Functions for Image Zoom ---
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightbox-img');
+
+        function openLightbox(src) {
+            lightboxImg.src = src;
+            lightbox.classList.add('active');
+        }
+
+        function closeLightbox() {
+            lightbox.classList.remove('active');
+            setTimeout(() => { lightboxImg.src = ''; }, 300); // clear after fade out
+        }
+
+        // Close lightbox on Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && lightbox.classList.contains('active')) {
+                closeLightbox();
+            }
+        });
+
+        // Animated Canvas Starfield
+        const canvas = document.getElementById('canvas-bg');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        for (let i = 0; i < 150; i++) {
+            stars.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                radius: Math.random() * 1.2,
+                alpha: Math.random(),
+                speed: Math.random() * 0.015 + 0.005
+            });
+        }
+
+        function animateStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            stars.forEach(star => {
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+                ctx.fill();
+                
+                star.alpha += star.speed;
+                if (star.alpha > 1 || star.alpha < 0) star.speed *= -1;
+            });
+            requestAnimationFrame(animateStars);
+        }
+        animateStars();
+    </script>
+</body>
+</html>
